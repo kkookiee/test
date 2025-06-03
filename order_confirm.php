@@ -73,12 +73,14 @@ $point = $row2['point'];
 
       <form action="order_process.php" method="post" class="order-form">
         <h3>배송 정보 입력</h3>
+
+        <!-- 수령인 -->
         <div class="form-group">
           <label for="recipient">수령인</label>
-          <!-- 사용자 입력값 검증 제거 -->
           <input type="text" id="recipient" name="recipient">
         </div>
 
+        <!-- 전화번호 -->
         <div class="form-group">
           <label>휴대폰</label>
           <div style="display:flex; gap:5px;">
@@ -88,6 +90,7 @@ $point = $row2['point'];
           </div>
         </div>
 
+        <!-- 주소 -->
         <div class="form-group">
           <label>배송주소</label>
           <div style="display:flex; gap:8px;">
@@ -98,6 +101,10 @@ $point = $row2['point'];
           <input type="text" id="jibunAddress" name="jibun_address" placeholder="지번 주소">
           <input type="text" id="detailAddress" name="detail_address" placeholder="상세 주소">
         </div>
+
+        <!-- ✅ 여기에 추가: 클라이언트가 조작할 수 있는 금액/포인트 필드 -->
+        <input type="hidden" name="total_price" id="total-price-input" value="">
+        <input type="hidden" name="used_point" id="used-point-input" value="">
 
         <button type="submit" id="checkout-btn" class="checkout-btn">주문 확정</button>
       </form>
