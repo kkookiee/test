@@ -3,10 +3,9 @@ require 'connect.php';
 require 'session_start.php';
 require 'header.php';
 
-// 사용자 입력값 검증 없이 직접 사용 (SQL Injection 가능!)
 $user_id = $_SESSION['user_id'];
 
-// 장바구니 조회 (SQL Injection)
+// 장바구니 조회
 $sql = "
     SELECT c.*, b.title, b.price
     FROM cart c
@@ -17,7 +16,7 @@ $result = $conn->query($sql);
 
 $total_price = 0;
 
-// 보유 포인트 조회 (SQL Injection)
+// 포인트 조회
 $sql = "SELECT point FROM users WHERE id = $user_id";
 $result2 = $conn->query($sql);
 $row2 = $result2->fetch_assoc();
@@ -51,7 +50,6 @@ $point = $row2['point'];
         </thead>
         <tbody>
           <?php while ($row = $result->fetch_assoc()):
-            // 사용자 입력값 검증 없이 출력 (XSS)
             $item_total = $row['price'] * $row['quantity'];
             $total_price += $item_total;
           ?>
@@ -74,13 +72,11 @@ $point = $row2['point'];
       <form action="order_process.php" method="post" class="order-form">
         <h3>배송 정보 입력</h3>
 
-        <!-- 수령인 -->
         <div class="form-group">
           <label for="recipient">수령인</label>
           <input type="text" id="recipient" name="recipient">
         </div>
 
-        <!-- 전화번호 -->
         <div class="form-group">
           <label>휴대폰</label>
           <div style="display:flex; gap:5px;">
@@ -90,7 +86,6 @@ $point = $row2['point'];
           </div>
         </div>
 
-        <!-- 주소 -->
         <div class="form-group">
           <label>배송주소</label>
           <div style="display:flex; gap:8px;">
@@ -102,7 +97,7 @@ $point = $row2['point'];
           <input type="text" id="detailAddress" name="detail_address" placeholder="상세 주소">
         </div>
 
-        <!-- ✅ 여기에 추가: 클라이언트가 조작할 수 있는 금액/포인트 필드 -->
+        <!-- 💰 클라이언트가 조작 가능하게 만드는 hidden 필드 -->
         <input type="hidden" name="total_price" id="total-price-input" value="">
         <input type="hidden" name="used_point" id="used-point-input" value="">
 
@@ -110,11 +105,12 @@ $point = $row2['point'];
       </form>
     </div>
   </main>
+
   <?php include 'footer.php'; ?>
 </body>
 </html>
 
-<!-- 카카오 주소 API 스크립트 -->
+<!-- 카카오 주소 API -->
 <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <script>
   function execDaumPostcode() {
@@ -128,13 +124,17 @@ $point = $row2['point'];
   }
 </script>
 
-<!-- ⚠️ 취약한 포인트 계산 및 상태 표시 (서버 검증 없이!) -->
+<!-- 💥 취약하게 처리된 포인트 계산 로직 -->
 <script>
   const totalPrice = parseInt(document.getElementById('total-price').innerText);
   const userPoint = parseInt(document.getElementById('user-point').innerText);
 
   const remainingPoint = userPoint - totalPrice;
   document.getElementById('remaining-point').innerText = remainingPoint;
+
+  // ✅ Burp에서 조작 가능하도록 hidden 필드에 값 삽입
+  document.getElementById('total-price-input').value = totalPrice;
+  document.getElementById('used-point-input').value = totalPrice; // 포인트 전액 사용 (취약)
 
   const statusElement = document.getElementById('point-status');
   if (remainingPoint >= 0) {
@@ -144,6 +144,4 @@ $point = $row2['point'];
     statusElement.innerText = '포인트 부족';
     statusElement.style.color = 'red';
   }
-
-  // ⚠️ 실제 결제 검증은 서버에서 이뤄져야 하지만, 여기는 일부러 취약하게 남김!
 </script>
