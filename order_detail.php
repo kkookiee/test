@@ -2,55 +2,49 @@
 include 'connect.php';
 include 'session_start.php';
 
-$order_id = isset($_GET['order_id']) ? (int)$_GET['order_id'] : 0;
+$token = $_GET['token'] ?? '';
+$token = trim($token);
 
-if ($order_id <= 0) {
-  echo "<script>alert('유효하지 않은 주문입니다.'); history.back();</script>";
-  exit;
+// 토큰 유효성 검증 제거 가능 (선택사항)
+// 여기서는 형식만 검사하고 SQL 인젝션 방어는 제거됨
+if (!preg_match('/^[a-f0-9]{64}$/', $token)) {
+    echo "<script>alert('유효하지 않은 접근입니다.'); history.back();</script>";
+    exit;
 }
 
-// 주문 조회
-$order_sql = "
-    SELECT id, user_id, status, address, used_point
-    FROM orders
-    WHERE id = $order_id
-";
-$order_result = $conn->query($order_sql);
+// 주문 조회 (취약: SQL문에 토큰 직접 삽입)
+$sql = "SELECT id, user_id, status, address FROM orders WHERE token = '$token'";
+$order_result = $conn->query($sql);
 
 if ($order_result && $order_result->num_rows > 0) {
     $order_row = $order_result->fetch_assoc();
+    $order_id = $order_row['id'];
     $user_id = $order_row['user_id'];
     $status = $order_row['status'];
     $address = $order_row['address'];
-    $used_point = $order_row['used_point'];
 } else {
     echo "<script>alert('존재하지 않는 주문입니다.'); history.back();</script>";
     exit;
 }
 
-// 주문 취소
+// 주문 취소 요청 처리 (취약: order_id 직접 삽입)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_order'])) {
     $conn->query("DELETE FROM order_items WHERE order_id = $order_id");
     $conn->query("DELETE FROM orders WHERE id = $order_id");
 
-    // 포인트 환불 처리 (상태 체크 없이 무조건 실행)
-    if ($used_point > 0) {
-      $conn->query("UPDATE users SET point = point + $used_point WHERE id = $user_id");
-  }
     echo "<script>alert('주문이 취소되었습니다.'); location.href='mypage.php';</script>";
     exit;
 }
 
-// 주문 상품 조회
-$sql = "
-    SELECT oi.id AS item_id, b.title, b.price, b.image_path, oi.quantity
-    FROM order_items oi
-    JOIN books b ON oi.book_id = b.id
-    WHERE oi.order_id = $order_id
-";
+// 주문 상품 조회 (취약: order_id 직접 삽입)
+$sql = "SELECT oi.id AS item_id, b.title, b.price, b.image_path, oi.quantity 
+        FROM order_items oi 
+        JOIN books b ON oi.book_id = b.id 
+        WHERE oi.order_id = $order_id";
 $result = $conn->query($sql);
 $total_price = 0;
 ?>
+
 
 <!DOCTYPE html>
 <html lang="ko">
